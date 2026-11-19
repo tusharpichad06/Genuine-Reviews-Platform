@@ -836,3 +836,25 @@ export default defineConfig([
 ])
 
 ```
+
+
+
+
+
+
+
+
+Free Domain taked from = https://open-domains.com/
+
+https://genuinereviews.is-local.org/
+
+
+
+
+
+to update code of vs code to github:
+#these are terminal commands-
+git add .github/workflows/deploy.yml
+git commit -m "Verify Supabase URL configuration"
+git pull --rebase origin main
+git push origin main
