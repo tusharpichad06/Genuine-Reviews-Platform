@@ -38,7 +38,10 @@ jobs:
         run: npm ci
 
       - name: Build website
-        run: npm run build
+        run: |
+          echo "Checking Supabase URL..."
+          node -e "const u=process.env.VITE_SUPABASE_URL; console.log('URL configured:', !!u); console.log('Has /rest/v1:', !!u && /\/rest\/v1\/?$/.test(u)); console.log('Correct project host:', !!u && new URL(u).hostname === 'megtdobeawgupgkraapf.supabase.co');"
+          npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
