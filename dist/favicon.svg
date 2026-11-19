@@ -1,0 +1,40 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="shieldGradient" x1="160" y1="250" x2="352" y2="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer rounded square -->
+  <rect
+    x="32"
+    y="32"
+    width="448"
+    height="448"
+    rx="135"
+    fill="#DBEAFE"
+    stroke="#60A5FA"
+    stroke-width="18"
+  />
+
+  <!-- Shield outline and fill -->
+  <path
+    d="M256 124
+       C237 124 224 130 216 145
+       C207 162 192 168 175 169
+       C165 170 162 178 162 189
+       V237
+       C162 306 199 356 256 388
+       C313 356 350 306 350 237
+       V189
+       C350 178 347 170 337 169
+       C320 168 305 162 296 145
+       C288 130 275 124 256 124Z"
+    fill="url(#shieldGradient)"
+    stroke="#9CA3AF"
+    stroke-width="8"
+    stroke-linejoin="round"
+  />
+</svg>
