@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
@@ -95,8 +96,10 @@ function ReviewForm() {
   const [attachments, setAttachments] =
     useState<File[]>([]);
 
-    const [existingAttachments, setExistingAttachments] =
-  useState<ExistingAttachment[]>([]);
+  const [existingAttachments, setExistingAttachments] =
+    useState<ExistingAttachment[]>([]);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [submitting, setSubmitting] =
     useState(false);
@@ -217,25 +220,12 @@ if (mediaError) {
 }
 
         if (!cancelled) {
-          setReview(
-  data as ExistingReview
-);
-
-setReview(data as ExistingReview);
-
-setSelectedCategory(
-  data.category ?? undefined
-);
-
-setRating(data.rating ?? 0);
-
-setRating(
-  data.rating ?? 0
-);
-
-setExistingAttachments(
-  (mediaData as ExistingAttachment[]) ?? []
-);
+          setReview(data as ExistingReview);
+          setSelectedCategory(data.category ?? undefined);
+          setRating(data.rating ?? 0);
+          setExistingAttachments(
+            (mediaData as ExistingAttachment[]) ?? []
+          );
         }
       } catch (error) {
         console.error(
@@ -409,27 +399,13 @@ function handleDeleteExistingAttachment(
          * the final protection.
          */
 
-        if (
-          review.user_id !==
-          user.id
-        ) {
+        if (review.user_id !== user.id) {
           toast.error(
             "You can only edit your own reviews."
           );
 
           return;
         }
-
-        if (
-  review.user_id !==
-  user.id
-) {
-  toast.error(
-    "You can only edit your own reviews."
-  );
-
-  return;
-}
 
 
 const {
@@ -1285,8 +1261,9 @@ if (
               py-2 sm:py-2.5
             "
           >
-            <label
-              htmlFor="attachments"
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
               className="
                 flex
                 cursor-pointer
@@ -1301,15 +1278,16 @@ if (
             >
               <Paperclip className="size-4" />
               Attach Files
-            </label>
+            </button>
 
             <span className="text-[11px] sm:text-xs text-[#8191aa]">
               {attachments.length}{" "}
-              file(s)
+              {isEditMode ? "new file(s)" : "file(s)"}
             </span>
           </div>
 
           <input
+            ref={fileInputRef}
             id="attachments"
             type="file"
             multiple

@@ -2525,18 +2525,21 @@ function ReviewDetails() {
 
                 <div className="space-y-4 sm:space-y-5">
                   {attachments.map((file) => {
+                    const lowerName = file.file_name?.toLowerCase() || "";
                     const isImage =
                       file.file_type === "images" ||
-                      file.file_type.startsWith("image/");
+                      file.file_type?.startsWith("image/") ||
+                      /\.(jpg|jpeg|png|webp|gif|svg|bmp)$/i.test(lowerName);
 
                     const isVideo =
                       file.file_type === "videos" ||
-                      file.file_type.startsWith("video/");
+                      file.file_type?.startsWith("video/") ||
+                      /\.(mp4|webm|mov|mkv|ogg)$/i.test(lowerName);
 
                     const isPdf =
                       file.file_type === "pdf" ||
                       file.file_type === "application/pdf" ||
-                      file.file_name.toLowerCase().endsWith(".pdf");
+                      lowerName.endsWith(".pdf");
 
                     return (
                       <div
