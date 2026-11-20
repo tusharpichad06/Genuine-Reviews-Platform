@@ -188,11 +188,26 @@ function BusinessAttachments({
     const validFiles: File[] = [];
 
     for (const file of selectedFiles) {
-      if (
-        !ALLOWED_FILE_TYPES.includes(
-          file.type
-        )
-      ) {
+      const fileExt = file.name.split(".").pop()?.toLowerCase();
+      const isAllowedExt =
+        fileExt &&
+        [
+          "jpg",
+          "jpeg",
+          "png",
+          "webp",
+          "pdf",
+          "doc",
+          "docx",
+          "xls",
+          "xlsx",
+        ].includes(fileExt);
+
+      const isAllowedMime =
+        ALLOWED_FILE_TYPES.includes(file.type) ||
+        file.type.startsWith("image/");
+
+      if (!isAllowedExt && !isAllowedMime) {
         setError(
           `"${file.name}" is not a supported file type.`
         );
@@ -322,14 +337,18 @@ function BusinessAttachments({
       setAttachments(
         (data ?? []) as BusinessAttachment[]
       );
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(
         "BUSINESS ATTACHMENT UPLOAD ERROR:",
         err
       );
 
+      const message =
+        (err as { message?: string })?.message ||
+        "Unable to upload one or more attachments.";
+
       setError(
-        "Unable to upload one or more attachments."
+        `Upload failed: ${message}`
       );
     } finally {
       setUploading(false);

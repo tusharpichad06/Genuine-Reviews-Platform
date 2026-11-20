@@ -10,15 +10,21 @@ export async function uploadAttachment(
       ? "videos"
       : "files";
 
-  const fileName = `${crypto.randomUUID()}-${file.name}`;
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const fileName = `${crypto.randomUUID()}-${safeName}`;
 
   const filePath = `${userId}/${folder}/${fileName}`;
 
   const { error } = await supabase.storage
     .from("review-attachments")
-    .upload(filePath, file);
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      contentType: file.type || "application/octet-stream",
+      upsert: true,
+    });
 
   if (error) {
+    console.error("STORAGE UPLOAD ERROR FOR REVIEW-ATTACHMENTS:", error);
     throw error;
   }
 

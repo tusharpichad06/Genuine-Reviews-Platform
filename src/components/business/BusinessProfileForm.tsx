@@ -419,7 +419,10 @@ const [services, setServices] =
 
     setError("");
 
-    if (!file.type.startsWith("image/")) {
+    const fileExt = file.name.split(".").pop()?.toLowerCase();
+    const isImageExt = fileExt && ["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(fileExt);
+
+    if (!file.type.startsWith("image/") && !isImageExt) {
       setError(
         "Please select a valid image file for the business logo."
       );

@@ -662,7 +662,7 @@ if (
                   );
 
                 toast.error(
-                  "Review was updated, but the new attachments could not be saved."
+                  `Media save error: ${mediaError.message || "The new attachments could not be saved."}`
                 );
 
                 return;
@@ -696,10 +696,14 @@ if (
                 );
             }
 
-            toast.error(
-              error instanceof Error
+            const errorMessage =
+              (error as { message?: string })?.message ||
+              (error instanceof Error
                 ? error.message
-                : "Review updated, but attachments could not be uploaded."
+                : "Review updated, but attachments could not be uploaded.");
+
+            toast.error(
+              `Upload failed: ${errorMessage}`
             );
 
             return;
