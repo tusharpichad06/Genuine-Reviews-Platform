@@ -1,4 +1,3 @@
-
 import {
   useEffect,
   useRef,
@@ -71,20 +70,8 @@ function ReviewForm() {
 
   const [searchParams] = useSearchParams();
 
-  /*
-   * =====================================================
-   * EDIT MODE
-   * =====================================================
-   */
-
   const editReviewId = searchParams.get("edit");
   const isEditMode = Boolean(editReviewId);
-
-  /*
-   * =====================================================
-   * FORM STATE
-   * =====================================================
-   */
 
   const [rating, setRating] = useState(0);
 
@@ -107,12 +94,6 @@ function ReviewForm() {
 
   const [selectedCategory, setSelectedCategory] =
     useState<string | null>(null);
-
-  /*
-   * =====================================================
-   * LOAD REVIEW FOR EDITING
-   * =====================================================
-   */
 
   useEffect(() => {
     let cancelled = false;
@@ -217,12 +198,6 @@ function ReviewForm() {
     };
   }, [editReviewId, user, navigate]);
 
-  /*
-   * =====================================================
-   * DELETE EXISTING ATTACHMENT
-   * =====================================================
-   */
-
   function handleDeleteExistingAttachment(
     attachment: ExistingAttachment
   ) {
@@ -233,11 +208,29 @@ function ReviewForm() {
     );
   }
 
-  /*
-   * =====================================================
-   * SUBMIT
-   * =====================================================
-   */
+  function handleFileInputChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const inputEl = event.currentTarget;
+    const files = inputEl.files;
+
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    const selectedFiles = Array.from(files);
+
+    setAttachments((previous) => [
+      ...previous,
+      ...selectedFiles,
+    ]);
+
+    toast.success(
+      `${selectedFiles.length} file(s) added. Click "Update Review" to save.`
+    );
+
+    inputEl.value = "";
+  }
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
@@ -281,12 +274,6 @@ function ReviewForm() {
         formData.get("content") as string
       )?.trim();
 
-      /*
-       * =================================================
-       * BASIC VALIDATION
-       * =================================================
-       */
-
       if (!subject) {
         toast.error(
           "Please enter what you are reviewing."
@@ -299,12 +286,6 @@ function ReviewForm() {
         return;
       }
 
-      /*
-       * =================================================
-       * EDIT EXISTING REVIEW
-       * =================================================
-       */
-
       if (isEditMode && review) {
         if (review.user_id !== user.id) {
           toast.error(
@@ -312,10 +293,6 @@ function ReviewForm() {
           );
           return;
         }
-
-        /*
-         * UPDATE REVIEW
-         */
 
         const {
           data: updateData,
@@ -363,12 +340,6 @@ function ReviewForm() {
           );
           return;
         }
-
-        /*
-         * =================================================
-         * DELETE REMOVED EXISTING ATTACHMENTS
-         * =================================================
-         */
 
         const {
           data: currentMedia,
@@ -430,16 +401,7 @@ function ReviewForm() {
           }
         }
 
-        /*
-         * =================================================
-         * UPLOAD NEW ATTACHMENTS
-         * =================================================
-         *
-         * Existing attachments are preserved.
-         * Newly selected files are added.
-         */
-
-if (attachments.length > 0) {
+        if (attachments.length > 0) {
           const uploadedFiles: UploadedAttachment[] = [];
 
           try {
@@ -505,11 +467,6 @@ if (attachments.length > 0) {
             return;
           }
         }
-        /*
-         * =================================================
-         * EDIT SUCCESS
-         * =================================================
-         */
 
         toast.success(
           "Review updated successfully!"
@@ -523,12 +480,6 @@ if (attachments.length > 0) {
 
         return;
       }
-
-      /*
-       * =================================================
-       * CREATE NEW REVIEW
-       * =================================================
-       */
 
       const {
         data: newReview,
@@ -559,12 +510,6 @@ if (attachments.length > 0) {
 
         return;
       }
-
-      /*
-       * =================================================
-       * UPLOAD ATTACHMENTS FOR NEW REVIEW
-       * =================================================
-       */
 
       const uploadedFiles: UploadedAttachment[] = [];
 
@@ -652,12 +597,6 @@ if (attachments.length > 0) {
         return;
       }
 
-      /*
-       * =================================================
-       * CREATE SUCCESS
-       * =================================================
-       */
-
       toast.success(
         "Review submitted successfully!"
       );
@@ -685,12 +624,6 @@ if (attachments.length > 0) {
     }
   }
 
-  /*
-   * =====================================================
-   * LOADING EDIT REVIEW
-   * =====================================================
-   */
-
   if (isEditMode && loadingReview) {
     return (
       <div className="mx-auto w-full max-w-2xl px-4 py-12 text-center">
@@ -700,12 +633,6 @@ if (attachments.length > 0) {
       </div>
     );
   }
-
-  /*
-   * =====================================================
-   * EDIT REVIEW FAILED / NOT FOUND
-   * =====================================================
-   */
 
   if (
     isEditMode &&
@@ -734,12 +661,6 @@ if (attachments.length > 0) {
     );
   }
 
-  /*
-   * =====================================================
-   * FORM
-   * =====================================================
-   */
-
   return (
     <form
       className="
@@ -753,8 +674,6 @@ if (attachments.length > 0) {
     >
       <div className="mb-4 sm:mb-0 sm:absolute sm:left-6 sm:top-10">
       </div>
-
-      {/* Heading */}
 
       <div>
         <h1
@@ -784,8 +703,6 @@ if (attachments.length > 0) {
             : "Share your genuine experience and help others make better decisions."}
         </p>
       </div>
-
-      {/* Subject */}
 
       <div className="space-y-1.5 sm:space-y-2">
         <label className="text-xs sm:text-sm font-semibold text-[#10182d]">
@@ -818,8 +735,6 @@ if (attachments.length > 0) {
           find your review easily.
         </p>
       </div>
-
-      {/* Category */}
 
       <div className="space-y-1.5 sm:space-y-2">
         <label className="text-xs sm:text-sm font-semibold text-[#10182d]">
@@ -881,8 +796,6 @@ if (attachments.length > 0) {
         </p>
       </div>
 
-      {/* Rating */}
-
       <div className="space-y-1.5 sm:space-y-2">
         <label className="text-xs sm:text-sm font-semibold text-[#10182d]">
           Rating{" "}
@@ -922,8 +835,6 @@ if (attachments.length > 0) {
         </div>
       </div>
 
-      {/* Review Title */}
-
       <div className="space-y-1.5 sm:space-y-2">
         <label className="text-xs sm:text-sm font-semibold text-[#10182d]">
           Review Title{" "}
@@ -951,8 +862,6 @@ if (attachments.length > 0) {
           "
         />
       </div>
-
-      {/* Actual Review */}
 
       <div className="space-y-1.5 sm:space-y-2">
         <label className="text-xs sm:text-sm font-semibold text-[#10182d]">
@@ -1034,26 +943,9 @@ if (attachments.length > 0) {
             multiple
             accept="image/*,video/*,.pdf,.doc,.docx,.txt"
             className="hidden"
-            onChange={(event) => {
-              const files = event.currentTarget.files;
-
-              if (!files || files.length === 0) {
-                return;
-              }
-
-              const selectedFiles = Array.from(files);
-
-              setAttachments((previous) => [
-                ...previous,
-                ...selectedFiles,
-              ]);
-
-              event.currentTarget.value = "";
-            }}
+            onChange={handleFileInputChange}
           />
         </div>
-
-        {/* Existing Attachments */}
 
         {isEditMode &&
           existingAttachments.length > 0 && (
@@ -1115,8 +1007,6 @@ if (attachments.length > 0) {
             </div>
           )}
 
-        {/* Newly Selected Attachments */}
-
         {attachments.length > 0 && (
           <div className="rounded-md border border-[#d6e2f2] bg-white mt-2">
             {attachments.map((file, index) => (
@@ -1153,8 +1043,6 @@ if (attachments.length > 0) {
             : "Share your genuine experience. This field is required."}
         </p>
       </div>
-
-      {/* Submit */}
 
       <Button
         type="submit"
