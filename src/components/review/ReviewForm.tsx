@@ -439,159 +439,69 @@ function ReviewForm() {
          * Newly selected files are added.
          */
 
-        if (attachments.length > 0) {
+if (attachments.length > 0) {
           const uploadedFiles: UploadedAttachment[] = [];
 
           try {
-            console.log(
-              "EDIT MODE ATTACHMENTS:",
-              attachments
-            );
-
-            console.log(
-              "CURRENT USER ID:",
-              user.id
-            );
-
-            console.log(
-              "CURRENT REVIEW ID:",
-              review.id
-            );
-
-            /*
-             * Upload each newly selected file.
-             */
-
             for (const file of attachments) {
-              console.log("UPLOADING FILE:", {
-                name: file.name,
-                type: file.type,
-                size: file.size,
-              });
-
               const uploaded = await uploadAttachment(
                 file,
                 user.id
               );
 
-              console.log(
-                "EDIT UPLOAD SUCCESS:",
-                uploaded
-              );
+              if (!uploaded?.url) {
+                throw new Error(
+                  `Upload failed or returned no URL for ${file.name}`
+                );
+              }
 
               uploadedFiles.push(uploaded);
             }
 
-            /*
-             * Save uploaded attachment details
-             * in the review_media table.
-             */
-
             if (uploadedFiles.length > 0) {
-              const media = uploadedFiles.map(
-                (file) => ({
-                  review_id: review.id,
-                  file_name: file.name,
-                  file_type: file.type,
-                  file_url: file.url,
-                })
-              );
+              const media = uploadedFiles.map((file) => ({
+                review_id: review.id,
+                file_name: file.name,
+                file_type: file.type || "application/octet-stream",
+                file_url: file.url,
+              }));
 
-              console.log(
-                "INSERTING MEDIA INTO DATABASE:",
-                media
-              );
-
-              const {
-                error: mediaError,
-              } = await supabase
-                .from("review_media")
-                .insert(media);
+              const { data: insertedRows, error: mediaError } =
+                await supabase
+                  .from("review_media")
+                  .insert(media)
+                  .select();
 
               if (mediaError) {
-                console.error(
-                  "SUPABASE MEDIA UPDATE ERROR:",
-                  mediaError
-                );
-
-                /*
-                 * Remove newly uploaded storage files
-                 * if database insertion fails.
-                 */
-
-                const paths = uploadedFiles.map(
-                  (file) => file.path
-                );
-
-                const {
-                  error: cleanupError,
-                } = await supabase.storage
-                  .from("review-attachments")
-                  .remove(paths);
-
-                if (cleanupError) {
-                  console.error(
-                    "STORAGE CLEANUP ERROR:",
-                    cleanupError
-                  );
-                }
-
-                toast.error(
-                  `Media save error: ${
-                    mediaError.message ||
-                    "The new attachments could not be saved."
-                  }`
-                );
-
-                return;
+                throw new Error(mediaError.message);
               }
 
-              console.log(
-                "MEDIA DATABASE INSERT SUCCESS"
-              );
+              if (!insertedRows || insertedRows.length === 0) {
+                throw new Error(
+                  "No rows inserted into review_media. Check RLS INSERT policy."
+                );
+              }
             }
           } catch (error) {
-            console.error(
-              "EDIT ATTACHMENT UPLOAD FULL ERROR:",
-              error
-            );
-
-            /*
-             * Clean up newly uploaded files
-             * if any upload fails.
-             */
-
             if (uploadedFiles.length > 0) {
-              const paths = uploadedFiles.map(
-                (file) => file.path
-              );
+              const paths = uploadedFiles
+                .map((file) => file.path)
+                .filter(Boolean);
 
-              const {
-                error: cleanupError,
-              } = await supabase.storage
-                .from("review-attachments")
-                .remove(paths);
-
-              if (cleanupError) {
-                console.error(
-                  "STORAGE CLEANUP ERROR:",
-                  cleanupError
-                );
+              if (paths.length > 0) {
+                await supabase.storage
+                  .from("review-attachments")
+                  .remove(paths);
               }
             }
 
-            const errorMessage =
+            const message =
               error instanceof Error
                 ? error.message
-                : (
-                    error as { message?: string }
-                  )?.message ||
-                  "Review updated, but attachments could not be uploaded.";
+                : "Could not save new attachments.";
 
-            toast.error(
-              `Upload failed: ${errorMessage}`
-            );
-
+            console.error("EDIT ATTACHMENT ERROR:", message, error);
+            toast.error(`Attachment error: ${message}`);
             return;
           }
         }
