@@ -505,7 +505,6 @@ if (attachments.length > 0) {
             return;
           }
         }
-
         /*
          * =================================================
          * EDIT SUCCESS
