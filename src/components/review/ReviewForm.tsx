@@ -1,4 +1,3 @@
-
 import {
   useEffect,
   useRef,
@@ -72,18 +71,18 @@ function ReviewForm() {
   const [searchParams] = useSearchParams();
 
   /*
-   * =====================================================
-   * EDIT MODE
-   * =====================================================
+- =====================================================
+- EDIT MODE
+- =====================================================
    */
 
   const editReviewId = searchParams.get("edit");
   const isEditMode = Boolean(editReviewId);
 
   /*
-   * =====================================================
-   * FORM STATE
-   * =====================================================
+- =====================================================
+- FORM STATE
+- =====================================================
    */
 
   const [rating, setRating] = useState(0);
@@ -109,9 +108,9 @@ function ReviewForm() {
     useState<string | null>(null);
 
   /*
-   * =====================================================
-   * LOAD REVIEW FOR EDITING
-   * =====================================================
+- =====================================================
+- LOAD REVIEW FOR EDITING
+- =====================================================
    */
 
   useEffect(() => {
@@ -218,9 +217,9 @@ function ReviewForm() {
   }, [editReviewId, user, navigate]);
 
   /*
-   * =====================================================
-   * DELETE EXISTING ATTACHMENT
-   * =====================================================
+- =====================================================
+- DELETE EXISTING ATTACHMENT
+- =====================================================
    */
 
   function handleDeleteExistingAttachment(
@@ -234,9 +233,35 @@ function ReviewForm() {
   }
 
   /*
-   * =====================================================
-   * SUBMIT
-   * =====================================================
+- =====================================================
+- FILE SELECTION
+- =====================================================
+   */
+
+  function handleAttachmentsChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const inputEl = event.currentTarget;
+    const files = inputEl.files;
+
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    const selectedFiles = Array.from(files);
+
+    setAttachments((previous) => [
+      ...previous,
+      ...selectedFiles,
+    ]);
+
+    inputEl.value = "";
+  }
+
+  /*
+- =====================================================
+- SUBMIT
+- =====================================================
    */
 
   async function handleSubmit(
@@ -282,9 +307,9 @@ function ReviewForm() {
       )?.trim();
 
       /*
-       * =================================================
-       * BASIC VALIDATION
-       * =================================================
+- =================================================
+- BASIC VALIDATION
+- =================================================
        */
 
       if (!subject) {
@@ -300,9 +325,9 @@ function ReviewForm() {
       }
 
       /*
-       * =================================================
-       * EDIT EXISTING REVIEW
-       * =================================================
+- =================================================
+- EDIT EXISTING REVIEW
+- =================================================
        */
 
       if (isEditMode && review) {
@@ -314,7 +339,7 @@ function ReviewForm() {
         }
 
         /*
-         * UPDATE REVIEW
+- UPDATE REVIEW
          */
 
         const {
@@ -365,9 +390,9 @@ function ReviewForm() {
         }
 
         /*
-         * =================================================
-         * DELETE REMOVED EXISTING ATTACHMENTS
-         * =================================================
+- =================================================
+- DELETE REMOVED EXISTING ATTACHMENTS
+- =================================================
          */
 
         const {
@@ -431,15 +456,15 @@ function ReviewForm() {
         }
 
         /*
-         * =================================================
-         * UPLOAD NEW ATTACHMENTS
-         * =================================================
+- =================================================
+- UPLOAD NEW ATTACHMENTS
+- =================================================
          *
-         * Existing attachments are preserved.
-         * Newly selected files are added.
+- Existing attachments are preserved.
+- Newly selected files are added.
          */
 
-if (attachments.length > 0) {
+        if (attachments.length > 0) {
           const uploadedFiles: UploadedAttachment[] = [];
 
           try {
@@ -505,10 +530,11 @@ if (attachments.length > 0) {
             return;
           }
         }
+
         /*
-         * =================================================
-         * EDIT SUCCESS
-         * =================================================
+- =================================================
+- EDIT SUCCESS
+- =================================================
          */
 
         toast.success(
@@ -525,9 +551,9 @@ if (attachments.length > 0) {
       }
 
       /*
-       * =================================================
-       * CREATE NEW REVIEW
-       * =================================================
+- =================================================
+- CREATE NEW REVIEW
+- =================================================
        */
 
       const {
@@ -561,9 +587,9 @@ if (attachments.length > 0) {
       }
 
       /*
-       * =================================================
-       * UPLOAD ATTACHMENTS FOR NEW REVIEW
-       * =================================================
+- =================================================
+- UPLOAD ATTACHMENTS FOR NEW REVIEW
+- =================================================
        */
 
       const uploadedFiles: UploadedAttachment[] = [];
@@ -583,7 +609,7 @@ if (attachments.length > 0) {
             (file) => ({
               review_id: newReview.id,
               file_name: file.name,
-              file_type: file.type,
+              file_type: file.type || "application/octet-stream",
               file_url: file.url,
             })
           );
@@ -653,9 +679,9 @@ if (attachments.length > 0) {
       }
 
       /*
-       * =================================================
-       * CREATE SUCCESS
-       * =================================================
+- =================================================
+- CREATE SUCCESS
+- =================================================
        */
 
       toast.success(
@@ -686,9 +712,9 @@ if (attachments.length > 0) {
   }
 
   /*
-   * =====================================================
-   * LOADING EDIT REVIEW
-   * =====================================================
+- =====================================================
+- LOADING EDIT REVIEW
+- =====================================================
    */
 
   if (isEditMode && loadingReview) {
@@ -702,9 +728,9 @@ if (attachments.length > 0) {
   }
 
   /*
-   * =====================================================
-   * EDIT REVIEW FAILED / NOT FOUND
-   * =====================================================
+- =====================================================
+- EDIT REVIEW FAILED / NOT FOUND
+- =====================================================
    */
 
   if (
@@ -735,9 +761,9 @@ if (attachments.length > 0) {
   }
 
   /*
-   * =====================================================
-   * FORM
-   * =====================================================
+- =====================================================
+- FORM
+- =====================================================
    */
 
   return (
@@ -1034,22 +1060,7 @@ if (attachments.length > 0) {
             multiple
             accept="image/*,video/*,.pdf,.doc,.docx,.txt"
             className="hidden"
-            onChange={(event) => {
-              const files = event.currentTarget.files;
-
-              if (!files || files.length === 0) {
-                return;
-              }
-
-              const selectedFiles = Array.from(files);
-
-              setAttachments((previous) => [
-                ...previous,
-                ...selectedFiles,
-              ]);
-
-              event.currentTarget.value = "";
-            }}
+            onChange={handleAttachmentsChange}
           />
         </div>
 
