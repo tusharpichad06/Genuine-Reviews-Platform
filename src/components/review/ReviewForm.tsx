@@ -395,64 +395,50 @@ function ReviewForm() {
 - =================================================
          */
 
-        const {
-          data: currentMedia,
-          error: currentMediaError,
-        } = await supabase
-          .from("review_media")
-          .select(
-            "id, file_name, file_type, file_url"
-          )
-          .eq("review_id", review.id);
-
-        if (currentMediaError) {
-          console.error(
-            "LOAD CURRENT REVIEW MEDIA ERROR:",
-            currentMediaError
-          );
-
-          toast.error(
-            "Review updated, but attachments could not be synchronized."
-          );
-          return;
-        }
-
-        const remainingIds = new Set(
-          existingAttachments.map(
-            (attachment) => attachment.id
-          )
-        );
-
-        const removedAttachments =
-          (currentMedia ?? []).filter(
-            (attachment) =>
-              !remainingIds.has(attachment.id)
-          );
-
-        if (removedAttachments.length > 0) {
-          const removedIds = removedAttachments.map(
-            (attachment) => attachment.id
-          );
-
+        try {
           const {
-            error: deleteMediaError,
+            data: currentMedia,
+            error: currentMediaError,
           } = await supabase
             .from("review_media")
-            .delete()
-            .in("id", removedIds)
+            .select("id, file_name, file_type, file_url")
             .eq("review_id", review.id);
 
-          if (deleteMediaError) {
+          if (currentMediaError) {
             console.error(
-              "DELETE REMOVED ATTACHMENTS ERROR:",
-              deleteMediaError
+              "LOAD CURRENT REVIEW MEDIA ERROR:",
+              currentMediaError
+            );
+          } else if (currentMedia && currentMedia.length > 0) {
+            const remainingIds = new Set(
+              existingAttachments.map((attachment) => attachment.id)
             );
 
-            toast.error(
-              "Review updated, but removed attachments could not be deleted."
+            const removedAttachments = currentMedia.filter(
+              (attachment) => !remainingIds.has(attachment.id)
             );
-            return;
+
+            if (removedAttachments.length > 0) {
+              const removedIds = removedAttachments.map(
+                (attachment) => attachment.id
+              );
+
+              const { error: deleteMediaError } = await supabase
+                .from("review_media")
+                .delete()
+                .in("id", removedIds)
+                .eq("review_id", review.id);
+
+              if (deleteMediaError) {
+                console.error(
+                  "DELETE REMOVED ATTACHMENTS ERROR:",
+                  deleteMediaError
+                );
+              }
+            }
           }
+        } catch (syncError) {
+          console.error("ATTACHMENT SYNC ERROR:", syncError);
         }
 
         /*
@@ -491,23 +477,32 @@ function ReviewForm() {
                 file_url: file.url,
               }));
 
-              const { data: insertedRows, error: mediaError } =
-                await supabase
-                  .from("review_media")
-                  .insert(media)
-                  .select();
+              const { error: mediaError } = await supabase
+                .from("review_media")
+                .insert(media);
 
               if (mediaError) {
-                throw new Error(mediaError.message);
-              }
+                console.error("SUPABASE MEDIA ERROR ON EDIT:", mediaError);
 
-              if (!insertedRows || insertedRows.length === 0) {
-                throw new Error(
-                  "No rows inserted into review_media. Check RLS INSERT policy."
+                const paths = uploadedFiles
+                  .map((file) => file.path)
+                  .filter(Boolean);
+
+                if (paths.length > 0) {
+                  await supabase.storage
+                    .from("review-attachments")
+                    .remove(paths);
+                }
+
+                toast.error(
+                  `Failed to save attachments: ${mediaError.message}`
                 );
+                return;
               }
             }
           } catch (error) {
+            console.error("EDIT ATTACHMENT ERROR:", error);
+
             if (uploadedFiles.length > 0) {
               const paths = uploadedFiles
                 .map((file) => file.path)
@@ -525,7 +520,6 @@ function ReviewForm() {
                 ? error.message
                 : "Could not save new attachments.";
 
-            console.error("EDIT ATTACHMENT ERROR:", message, error);
             toast.error(`Attachment error: ${message}`);
             return;
           }
