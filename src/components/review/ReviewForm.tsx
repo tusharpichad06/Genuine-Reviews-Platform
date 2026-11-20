@@ -1,19 +1,14 @@
+
 import {
   useEffect,
   useRef,
   useState,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
-
 import { toast } from "sonner";
-
-import {
-  useSearchParams,
-} from "react-router-dom";
-
 import { supabase } from "../../lib/supabase";
 import { uploadAttachment } from "../../lib/storage";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-
 import {
   Star,
   Paperclip,
@@ -64,13 +58,18 @@ type ExistingAttachment = {
   file_url: string;
 };
 
+type UploadedAttachment = {
+  url: string;
+  path: string;
+  type: string;
+  name: string;
+};
+
 function ReviewForm() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
 
-  const [searchParams] =
-    useSearchParams();
+  const [searchParams] = useSearchParams();
 
   /*
    * =====================================================
@@ -78,11 +77,8 @@ function ReviewForm() {
    * =====================================================
    */
 
-  const editReviewId =
-    searchParams.get("edit");
-
-  const isEditMode =
-    Boolean(editReviewId);
+  const editReviewId = searchParams.get("edit");
+  const isEditMode = Boolean(editReviewId);
 
   /*
    * =====================================================
@@ -90,8 +86,7 @@ function ReviewForm() {
    * =====================================================
    */
 
-  const [rating, setRating] =
-    useState(0);
+  const [rating, setRating] = useState(0);
 
   const [attachments, setAttachments] =
     useState<File[]>([]);
@@ -99,23 +94,20 @@ function ReviewForm() {
   const [existingAttachments, setExistingAttachments] =
     useState<ExistingAttachment[]>([]);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(null);
 
-  const [submitting, setSubmitting] =
-    useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [loadingReview, setLoadingReview] =
     useState(isEditMode);
 
   const [review, setReview] =
-    useState<ExistingReview | null>(
-      null
-    );
+    useState<ExistingReview | null>(null);
 
-const [selectedCategory, setSelectedCategory] =
-  useState<string | null>(
-    review?.category ?? null
-  );
+  const [selectedCategory, setSelectedCategory] =
+    useState<string | null>(null);
+
   /*
    * =====================================================
    * LOAD REVIEW FOR EDITING
@@ -126,17 +118,11 @@ const [selectedCategory, setSelectedCategory] =
     let cancelled = false;
 
     async function loadReview() {
-      /*
-       * Normal create mode.
-       */
       if (!editReviewId) {
         setLoadingReview(false);
         return;
       }
 
-      /*
-       * User must be logged in.
-       */
       if (!user) {
         setLoadingReview(false);
         return;
@@ -153,14 +139,8 @@ const [selectedCategory, setSelectedCategory] =
           .select(
             "id, user_id, subject, category, rating, title, content"
           )
-          .eq(
-            "id",
-            editReviewId
-          )
-          .eq(
-            "user_id",
-            user.id
-          )
+          .eq("id", editReviewId)
+          .eq("user_id", user.id)
           .maybeSingle();
 
         if (error) {
@@ -170,26 +150,18 @@ const [selectedCategory, setSelectedCategory] =
           );
 
           if (!cancelled) {
-            toast.error(
-              "Could not load this review."
-            );
-
+            toast.error("Could not load this review.");
             navigate("/");
           }
 
           return;
         }
 
-        /*
-         * No review OR review belongs to
-         * another user.
-         */
         if (!data) {
           if (!cancelled) {
             toast.error(
               "You can only edit your own reviews."
             );
-
             navigate("/");
           }
 
@@ -197,47 +169,38 @@ const [selectedCategory, setSelectedCategory] =
         }
 
         const {
-  data: mediaData,
-  error: mediaError,
-} = await supabase
-  .from("review_media")
-  .select(
-    "id, file_name, file_type, file_url"
-  )
-  .eq(
-    "review_id",
-    editReviewId
-  )
-  .order("created_at", {
-    ascending: true,
-  });
+          data: mediaData,
+          error: mediaError,
+        } = await supabase
+          .from("review_media")
+          .select(
+            "id, file_name, file_type, file_url"
+          )
+          .eq("review_id", editReviewId)
+          .order("created_at", {
+            ascending: true,
+          });
 
-if (mediaError) {
-  console.error(
-    "LOAD REVIEW ATTACHMENTS ERROR:",
-    mediaError
-  );
-}
+        if (mediaError) {
+          console.error(
+            "LOAD REVIEW ATTACHMENTS ERROR:",
+            mediaError
+          );
+        }
 
         if (!cancelled) {
           setReview(data as ExistingReview);
-          setSelectedCategory(data.category ?? undefined);
+          setSelectedCategory(data.category ?? null);
           setRating(data.rating ?? 0);
           setExistingAttachments(
             (mediaData as ExistingAttachment[]) ?? []
           );
         }
       } catch (error) {
-        console.error(
-          "LOAD REVIEW ERROR:",
-          error
-        );
+        console.error("LOAD REVIEW ERROR:", error);
 
         if (!cancelled) {
-          toast.error(
-            "Could not load the review."
-          );
-
+          toast.error("Could not load the review.");
           navigate("/");
         }
       } finally {
@@ -252,32 +215,23 @@ if (mediaError) {
     return () => {
       cancelled = true;
     };
-  }, [
-    editReviewId,
-    user,
-    navigate,
-  ]);
+  }, [editReviewId, user, navigate]);
 
-
-    /*
+  /*
    * =====================================================
    * DELETE EXISTING ATTACHMENT
    * =====================================================
    */
 
-function handleDeleteExistingAttachment(
-  attachment: ExistingAttachment
-) {
-  setExistingAttachments(
-    (current) =>
+  function handleDeleteExistingAttachment(
+    attachment: ExistingAttachment
+  ) {
+    setExistingAttachments((current) =>
       current.filter(
-        (item) =>
-          item.id !== attachment.id
+        (item) => item.id !== attachment.id
       )
-  );
-}
-
-
+    );
+  }
 
   /*
    * =====================================================
@@ -290,18 +244,9 @@ function handleDeleteExistingAttachment(
   ) {
     event.preventDefault();
 
-    /*
-     * User must be logged in.
-     */
     if (!user) {
-      toast.error(
-        "Please login to post a review."
-      );
-
-      navigate(
-        "/auth?mode=login"
-      );
-
+      toast.error("Please login to post a review.");
+      navigate("/auth?mode=login");
       return;
     }
 
@@ -309,55 +254,32 @@ function handleDeleteExistingAttachment(
       return;
     }
 
-    /*
-     * Edit mode requires a loaded review.
-     */
-    if (
-      isEditMode &&
-      !review
-    ) {
-      toast.error(
-        "The review could not be loaded."
-      );
-
+    if (isEditMode && !review) {
+      toast.error("The review could not be loaded.");
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const form =
-        event.currentTarget;
+      const form = event.currentTarget;
+      const formData = new FormData(form);
 
-      const formData =
-        new FormData(form);
+      const subject = (
+        formData.get("subject") as string
+      )?.trim();
 
-      const subject =
-        (
-          formData.get(
-            "subject"
-          ) as string
-        )?.trim();
+      const category = selectedCategory || "Other";
 
-      const category =
-  selectedCategory || "Other";
+      const titleValue = (
+        formData.get("title") as string
+      )?.trim();
 
-      const titleValue =
-        (
-          formData.get(
-            "title"
-          ) as string
-        )?.trim();
+      const title = titleValue || null;
 
-      const title =
-        titleValue || null;
-
-      const content =
-        (
-          formData.get(
-            "content"
-          ) as string
-        )?.trim();
+      const content = (
+        formData.get("content") as string
+      )?.trim();
 
       /*
        * =================================================
@@ -369,15 +291,11 @@ function handleDeleteExistingAttachment(
         toast.error(
           "Please enter what you are reviewing."
         );
-
         return;
       }
 
       if (!content) {
-        toast.error(
-          "Please write your review."
-        );
-
+        toast.error("Please write your review.");
         return;
       }
 
@@ -387,165 +305,131 @@ function handleDeleteExistingAttachment(
        * =================================================
        */
 
-      if (
-        isEditMode &&
-        review
-      ) {
-        /*
-         * Extra ownership protection on the
-         * client side.
-         *
-         * The database RLS policy will be
-         * the final protection.
-         */
-
+      if (isEditMode && review) {
         if (review.user_id !== user.id) {
           toast.error(
             "You can only edit your own reviews."
           );
-
           return;
         }
 
+        /*
+         * UPDATE REVIEW
+         */
 
-const {
-  data: updateData,
-  error: updateError,
-} = await supabase
-  .from("reviews")
-  .update({
-    subject,
-    category,
-    rating: rating || null,
-    title,
-    content,
-  })
-  .eq("id", review.id)
-  .eq("user_id", user.id)
-  .select(
-    "id, user_id, subject, category, rating, title, content"
-  );
+        const {
+          data: updateData,
+          error: updateError,
+        } = await supabase
+          .from("reviews")
+          .update({
+            subject,
+            category,
+            rating: rating || null,
+            title,
+            content,
+          })
+          .eq("id", review.id)
+          .eq("user_id", user.id)
+          .select(
+            "id, user_id, subject, category, rating, title, content"
+          );
 
-console.log("UPDATE RESULT:", {
-  updateData,
-  updateError,
-  reviewId: review.id,
-  currentUserId: user.id,
-});
+        console.log("UPDATE RESULT:", {
+          updateData,
+          updateError,
+          reviewId: review.id,
+          currentUserId: user.id,
+        });
 
-if (updateError) {
-  console.error(
-    "SUPABASE REVIEW UPDATE ERROR:",
-    updateError
-  );
+        if (updateError) {
+          console.error(
+            "SUPABASE REVIEW UPDATE ERROR:",
+            updateError
+          );
 
-  toast.error(
-    updateError.message ||
-      "Failed to update review."
-  );
+          toast.error(
+            updateError.message ||
+              "Failed to update review."
+          );
+          return;
+        }
 
-  return;
-}
+        if (!updateData || updateData.length === 0) {
+          console.error("UPDATE AFFECTED ZERO ROWS");
 
-if (
-  !updateData ||
-  updateData.length === 0
-) {
-  console.error(
-    "UPDATE AFFECTED ZERO ROWS"
-  );
+          toast.error(
+            "Review was not updated. Check your Supabase UPDATE policy."
+          );
+          return;
+        }
 
-  toast.error(
-    "Review was not updated. Check your Supabase UPDATE policy."
-  );
+        /*
+         * =================================================
+         * DELETE REMOVED EXISTING ATTACHMENTS
+         * =================================================
+         */
 
-  return;
-}
+        const {
+          data: currentMedia,
+          error: currentMediaError,
+        } = await supabase
+          .from("review_media")
+          .select(
+            "id, file_name, file_type, file_url"
+          )
+          .eq("review_id", review.id);
 
-/*
- * =================================================
- * DELETE REMOVED EXISTING ATTACHMENTS
- * =================================================
- */
+        if (currentMediaError) {
+          console.error(
+            "LOAD CURRENT REVIEW MEDIA ERROR:",
+            currentMediaError
+          );
 
-const {
-  data: currentMedia,
-  error: currentMediaError,
-} = await supabase
-  .from("review_media")
-  .select(
-    "id, file_name, file_type, file_url"
-  )
-  .eq(
-    "review_id",
-    review.id
-  );
+          toast.error(
+            "Review updated, but attachments could not be synchronized."
+          );
+          return;
+        }
 
-if (currentMediaError) {
-  console.error(
-    "LOAD CURRENT REVIEW MEDIA ERROR:",
-    currentMediaError
-  );
+        const remainingIds = new Set(
+          existingAttachments.map(
+            (attachment) => attachment.id
+          )
+        );
 
-  toast.error(
-    "Review updated, but attachments could not be synchronized."
-  );
+        const removedAttachments =
+          (currentMedia ?? []).filter(
+            (attachment) =>
+              !remainingIds.has(attachment.id)
+          );
 
-  return;
-}
+        if (removedAttachments.length > 0) {
+          const removedIds = removedAttachments.map(
+            (attachment) => attachment.id
+          );
 
-const remainingIds =
-  new Set(
-    existingAttachments.map(
-      (attachment) =>
-        attachment.id
-    )
-  );
+          const {
+            error: deleteMediaError,
+          } = await supabase
+            .from("review_media")
+            .delete()
+            .in("id", removedIds)
+            .eq("review_id", review.id);
 
-const removedAttachments =
-  (currentMedia ?? []).filter(
-    (attachment) =>
-      !remainingIds.has(
-        attachment.id
-      )
-  );
+          if (deleteMediaError) {
+            console.error(
+              "DELETE REMOVED ATTACHMENTS ERROR:",
+              deleteMediaError
+            );
 
-if (
-  removedAttachments.length > 0
-) {
-  const removedIds =
-    removedAttachments.map(
-      (attachment) =>
-        attachment.id
-    );
+            toast.error(
+              "Review updated, but removed attachments could not be deleted."
+            );
+            return;
+          }
+        }
 
-  const {
-    error: deleteMediaError,
-  } = await supabase
-    .from("review_media")
-    .delete()
-    .in(
-      "id",
-      removedIds
-    )
-    .eq(
-      "review_id",
-      review.id
-    );
-
-  if (deleteMediaError) {
-    console.error(
-      "DELETE REMOVED ATTACHMENTS ERROR:",
-      deleteMediaError
-    );
-
-    toast.error(
-      "Review updated, but removed attachments could not be deleted."
-    );
-
-    return;
-  }
-}
         /*
          * =================================================
          * UPLOAD NEW ATTACHMENTS
@@ -555,128 +439,154 @@ if (
          * Newly selected files are added.
          */
 
-        if (
-          attachments.length > 0
-        ) {
-          const uploadedFiles: {
-            url: string;
-            path: string;
-            type: string;
-            name: string;
-          }[] = [];
+        if (attachments.length > 0) {
+          const uploadedFiles: UploadedAttachment[] = [];
 
           try {
-            for (
-              const file of attachments
-            ) {
-              const uploaded =
-                await uploadAttachment(
-                  file,
-                  user.id
-                );
+            console.log(
+              "EDIT MODE ATTACHMENTS:",
+              attachments
+            );
 
-              uploadedFiles.push(
+            console.log(
+              "CURRENT USER ID:",
+              user.id
+            );
+
+            console.log(
+              "CURRENT REVIEW ID:",
+              review.id
+            );
+
+            /*
+             * Upload each newly selected file.
+             */
+
+            for (const file of attachments) {
+              console.log("UPLOADING FILE:", {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+              });
+
+              const uploaded = await uploadAttachment(
+                file,
+                user.id
+              );
+
+              console.log(
+                "EDIT UPLOAD SUCCESS:",
                 uploaded
               );
+
+              uploadedFiles.push(uploaded);
             }
 
-            if (
-              uploadedFiles.length >
-              0
-            ) {
-              const media =
-                uploadedFiles.map(
-                  (file) => ({
-                    review_id:
-                      review.id,
-                    file_name:
-                      file.name,
-                    file_type:
-                      file.type,
-                    file_url:
-                      file.url,
-                  })
-                );
+            /*
+             * Save uploaded attachment details
+             * in the review_media table.
+             */
+
+            if (uploadedFiles.length > 0) {
+              const media = uploadedFiles.map(
+                (file) => ({
+                  review_id: review.id,
+                  file_name: file.name,
+                  file_type: file.type,
+                  file_url: file.url,
+                })
+              );
+
+              console.log(
+                "INSERTING MEDIA INTO DATABASE:",
+                media
+              );
 
               const {
-                error:
-                  mediaError,
-              } =
-                await supabase
-                  .from(
-                    "review_media"
-                  )
-                  .insert(
-                    media
-                  );
+                error: mediaError,
+              } = await supabase
+                .from("review_media")
+                .insert(media);
 
-              if (
-                mediaError
-              ) {
+              if (mediaError) {
                 console.error(
                   "SUPABASE MEDIA UPDATE ERROR:",
                   mediaError
                 );
 
                 /*
-                 * Remove newly uploaded
-                 * storage files if database
-                 * media insertion fails.
+                 * Remove newly uploaded storage files
+                 * if database insertion fails.
                  */
-                const paths =
-                  uploadedFiles.map(
-                    (file) =>
-                      file.path
-                  );
 
-                await supabase.storage
-                  .from(
-                    "review-attachments"
-                  )
-                  .remove(
-                    paths
+                const paths = uploadedFiles.map(
+                  (file) => file.path
+                );
+
+                const {
+                  error: cleanupError,
+                } = await supabase.storage
+                  .from("review-attachments")
+                  .remove(paths);
+
+                if (cleanupError) {
+                  console.error(
+                    "STORAGE CLEANUP ERROR:",
+                    cleanupError
                   );
+                }
 
                 toast.error(
-                  `Media save error: ${mediaError.message || "The new attachments could not be saved."}`
+                  `Media save error: ${
+                    mediaError.message ||
+                    "The new attachments could not be saved."
+                  }`
                 );
 
                 return;
               }
+
+              console.log(
+                "MEDIA DATABASE INSERT SUCCESS"
+              );
             }
           } catch (error) {
             console.error(
-              "EDIT ATTACHMENT UPLOAD ERROR:",
+              "EDIT ATTACHMENT UPLOAD FULL ERROR:",
               error
             );
 
             /*
-             * Clean up newly uploaded files.
+             * Clean up newly uploaded files
+             * if any upload fails.
              */
-            if (
-              uploadedFiles.length >
-              0
-            ) {
-              const paths =
-                uploadedFiles.map(
-                  (file) =>
-                    file.path
-                );
 
-              await supabase.storage
-                .from(
-                  "review-attachments"
-                )
-                .remove(
-                  paths
+            if (uploadedFiles.length > 0) {
+              const paths = uploadedFiles.map(
+                (file) => file.path
+              );
+
+              const {
+                error: cleanupError,
+              } = await supabase.storage
+                .from("review-attachments")
+                .remove(paths);
+
+              if (cleanupError) {
+                console.error(
+                  "STORAGE CLEANUP ERROR:",
+                  cleanupError
                 );
+              }
             }
 
             const errorMessage =
-              (error as { message?: string })?.message ||
-              (error instanceof Error
+              error instanceof Error
                 ? error.message
-                : "Review updated, but attachments could not be uploaded.");
+                : (
+                    error as { message?: string }
+                  )?.message ||
+                  "Review updated, but attachments could not be uploaded.";
 
             toast.error(
               `Upload failed: ${errorMessage}`
@@ -686,19 +596,20 @@ if (
           }
         }
 
+        /*
+         * =================================================
+         * EDIT SUCCESS
+         * =================================================
+         */
+
         toast.success(
           "Review updated successfully!"
         );
 
         setAttachments([]);
 
-        /*
-         * Go directly to the edited review.
-         */
         setTimeout(() => {
-          navigate(
-            `/review/${review.id}`
-          );
+          navigate(`/review/${review.id}`);
         }, 500);
 
         return;
@@ -713,26 +624,20 @@ if (
       const {
         data: newReview,
         error: reviewError,
-      } =
-        await supabase
-          .from("reviews")
-          .insert({
-            user_id:
-              user.id,
-            subject,
-            category,
-            rating:
-              rating || null,
-            title,
-            content,
-          })
-          .select()
-          .single();
+      } = await supabase
+        .from("reviews")
+        .insert({
+          user_id: user.id,
+          subject,
+          category,
+          rating: rating || null,
+          title,
+          content,
+        })
+        .select()
+        .single();
 
-      if (
-        reviewError ||
-        !newReview
-      ) {
+      if (reviewError || !newReview) {
         console.error(
           "SUPABASE REVIEW ERROR:",
           reviewError
@@ -752,56 +657,33 @@ if (
        * =================================================
        */
 
-      const uploadedFiles: {
-        url: string;
-        path: string;
-        type: string;
-        name: string;
-      }[] = [];
+      const uploadedFiles: UploadedAttachment[] = [];
 
       try {
-        for (
-          const file of attachments
-        ) {
-          const uploaded =
-            await uploadAttachment(
-              file,
-              user.id
-            );
-
-          uploadedFiles.push(
-            uploaded
+        for (const file of attachments) {
+          const uploaded = await uploadAttachment(
+            file,
+            user.id
           );
+
+          uploadedFiles.push(uploaded);
         }
 
-        if (
-          uploadedFiles.length >
-          0
-        ) {
-          const media =
-            uploadedFiles.map(
-              (file) => ({
-                review_id:
-                  newReview.id,
-                file_name:
-                  file.name,
-                file_type:
-                  file.type,
-                file_url:
-                  file.url,
-              })
-            );
+        if (uploadedFiles.length > 0) {
+          const media = uploadedFiles.map(
+            (file) => ({
+              review_id: newReview.id,
+              file_name: file.name,
+              file_type: file.type,
+              file_url: file.url,
+            })
+          );
 
           const {
             error: mediaError,
-          } =
-            await supabase
-              .from(
-                "review_media"
-              )
-              .insert(
-                media
-              );
+          } = await supabase
+            .from("review_media")
+            .insert(media);
 
           if (mediaError) {
             console.error(
@@ -809,31 +691,19 @@ if (
               mediaError
             );
 
-            const paths =
-              uploadedFiles.map(
-                (file) =>
-                  file.path
-              );
+            const paths = uploadedFiles.map(
+              (file) => file.path
+            );
 
             await supabase.storage
-              .from(
-                "review-attachments"
-              )
-              .remove(
-                paths
-              );
+              .from("review-attachments")
+              .remove(paths);
 
             await supabase
               .from("reviews")
               .delete()
-              .eq(
-                "id",
-                newReview.id
-              )
-              .eq(
-                "user_id",
-                user.id
-              );
+              .eq("id", newReview.id)
+              .eq("user_id", user.id);
 
             toast.error(
               "Failed to save attachments. Review was not submitted."
@@ -848,36 +718,21 @@ if (
           error
         );
 
-        if (
-          uploadedFiles.length >
-          0
-        ) {
-          const paths =
-            uploadedFiles.map(
-              (file) =>
-                file.path
-            );
+        if (uploadedFiles.length > 0) {
+          const paths = uploadedFiles.map(
+            (file) => file.path
+          );
 
           await supabase.storage
-            .from(
-              "review-attachments"
-            )
-            .remove(
-              paths
-            );
+            .from("review-attachments")
+            .remove(paths);
         }
 
         await supabase
           .from("reviews")
           .delete()
-          .eq(
-            "id",
-            newReview.id
-          )
-          .eq(
-            "user_id",
-            user.id
-          );
+          .eq("id", newReview.id)
+          .eq("user_id", user.id);
 
         toast.error(
           error instanceof Error
@@ -899,9 +754,7 @@ if (
       );
 
       form.reset();
-
       setRating(0);
-
       setAttachments([]);
 
       setTimeout(() => {
@@ -929,10 +782,7 @@ if (
    * =====================================================
    */
 
-  if (
-    isEditMode &&
-    loadingReview
-  ) {
+  if (isEditMode && loadingReview) {
     return (
       <div className="mx-auto w-full max-w-2xl px-4 py-12 text-center">
         <p className="text-sm text-muted-foreground">
@@ -967,9 +817,7 @@ if (
         <Button
           type="button"
           className="mt-6"
-          onClick={() =>
-            navigate("/")
-          }
+          onClick={() => navigate("/")}
         >
           Back to Home
         </Button>
@@ -994,14 +842,12 @@ if (
       "
       onSubmit={handleSubmit}
     >
-
       <div className="mb-4 sm:mb-0 sm:absolute sm:left-6 sm:top-10">
-        
       </div>
 
       {/* Heading */}
 
-     <div>
+      <div>
         <h1
           className="
             text-2xl
@@ -1035,16 +881,12 @@ if (
       <div className="space-y-1.5 sm:space-y-2">
         <label className="text-xs sm:text-sm font-semibold text-[#10182d]">
           What are you reviewing?{" "}
-          <span className="text-red-500">
-            *
-          </span>
+          <span className="text-red-500">*</span>
         </label>
 
         <Input
           name="subject"
-          defaultValue={
-            review?.subject ?? ""
-          }
+          defaultValue={review?.subject ?? ""}
           placeholder="Enter the product, service, place or anything you're reviewing"
           required
           className="
@@ -1112,17 +954,15 @@ if (
             alignItemWithTrigger={false}
             className="bg-white border border-slate-200 shadow-md"
           >
-            {categories.map(
-              (category) => (
-                <SelectItem
-                  key={category}
-                  value={category}
-                  className="cursor-pointer text-xs sm:text-sm data-[highlighted]:bg-slate-100"
-                >
-                  {category}
-                </SelectItem>
-              )
-            )}
+            {categories.map((category) => (
+              <SelectItem
+                key={category}
+                value={category}
+                className="cursor-pointer text-xs sm:text-sm data-[highlighted]:bg-slate-100"
+              >
+                {category}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -1143,37 +983,33 @@ if (
         </label>
 
         <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map(
-            (star) => (
-              <button
-                key={star}
-                type="button"
-                onClick={() =>
-                  setRating(
-                    rating === star
-                      ? 0
-                      : star
-                  )
-                }
-                className="
-                  rounded-md
-                  p-1
-                  transition-transform
-                  duration-150
-                  hover:scale-110
-                "
-                aria-label={`Rate ${star} out of 5`}
-              >
-                <Star
-                  className={`size-5 sm:size-6 ${
-                    star <= rating
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-[#9aa9bd]"
-                  }`}
-                />
-              </button>
-            )
-          )}
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() =>
+                setRating(
+                  rating === star ? 0 : star
+                )
+              }
+              className="
+                rounded-md
+                p-1
+                transition-transform
+                duration-150
+                hover:scale-110
+              "
+              aria-label={`Rate ${star} out of 5`}
+            >
+              <Star
+                className={`size-5 sm:size-6 ${
+                  star <= rating
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-[#9aa9bd]"
+                }`}
+              />
+            </button>
+          ))}
         </div>
       </div>
 
@@ -1189,9 +1025,7 @@ if (
 
         <Input
           name="title"
-          defaultValue={
-            review?.title ?? ""
-          }
+          defaultValue={review?.title ?? ""}
           placeholder="Give your review a short title (optional)"
           className="
             h-10 sm:h-11
@@ -1214,9 +1048,7 @@ if (
       <div className="space-y-1.5 sm:space-y-2">
         <label className="text-xs sm:text-sm font-semibold text-[#10182d]">
           Your Review{" "}
-          <span className="text-red-500">
-            *
-          </span>
+          <span className="text-red-500">*</span>
         </label>
 
         <div
@@ -1231,9 +1063,7 @@ if (
         >
           <Textarea
             name="content"
-            defaultValue={
-              review?.content ?? ""
-            }
+            defaultValue={review?.content ?? ""}
             placeholder="Share your genuine experience..."
             className="
               min-h-36 sm:min-h-40
@@ -1263,7 +1093,9 @@ if (
           >
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() =>
+                fileInputRef.current?.click()
+              }
               className="
                 flex
                 cursor-pointer
@@ -1294,32 +1126,25 @@ if (
             accept="image/*,video/*,.pdf,.doc,.docx,.txt"
             className="hidden"
             onChange={(event) => {
-              const files =
-                event.currentTarget
-                  .files;
+              const files = event.currentTarget.files;
 
-              if (
-                !files ||
-                files.length === 0
-              ) {
+              if (!files || files.length === 0) {
                 return;
               }
 
-              const selectedFiles =
-                Array.from(files);
+              const selectedFiles = Array.from(files);
 
-              setAttachments(
-                (previous) => [
-                  ...previous,
-                  ...selectedFiles,
-                ]
-              );
+              setAttachments((previous) => [
+                ...previous,
+                ...selectedFiles,
+              ]);
 
-              event.currentTarget.value =
-                "";
+              event.currentTarget.value = "";
             }}
           />
         </div>
+
+        {/* Existing Attachments */}
 
         {isEditMode &&
           existingAttachments.length > 0 && (
@@ -1354,15 +1179,12 @@ if (
                       "
                     >
                       <a
-                        href={
-                          attachment.file_url
-                        }
+                        href={attachment.file_url}
                         target="_blank"
                         rel="noreferrer"
                         className="min-w-0 truncate text-xs sm:text-sm font-medium hover:underline"
                       >
-                        📎{" "}
-                        {attachment.file_name}
+                        📎 {attachment.file_name}
                       </a>
 
                       <button
@@ -1384,46 +1206,35 @@ if (
             </div>
           )}
 
+        {/* Newly Selected Attachments */}
 
-        {attachments.length >
-          0 && (
+        {attachments.length > 0 && (
           <div className="rounded-md border border-[#d6e2f2] bg-white mt-2">
-            {attachments.map(
-              (
-                file,
-                index
-              ) => (
-                <div
-                  key={`${file.name}-${index}`}
-                  className="flex items-center justify-between border-b border-[#e8eef6] px-3.5 sm:px-4 py-2.5 sm:py-3 last:border-b-0"
-                >
-                  <span className="truncate text-xs sm:text-sm">
-                    📎{" "}
-                    {file.name}
-                  </span>
+            {attachments.map((file, index) => (
+              <div
+                key={`${file.name}-${index}`}
+                className="flex items-center justify-between border-b border-[#e8eef6] px-3.5 sm:px-4 py-2.5 sm:py-3 last:border-b-0"
+              >
+                <span className="truncate text-xs sm:text-sm">
+                  📎 {file.name}
+                </span>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setAttachments(
-                        (previous) =>
-                          previous.filter(
-                            (
-                              _,
-                              fileIndex
-                            ) =>
-                              fileIndex !==
-                              index
-                          )
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAttachments((previous) =>
+                      previous.filter(
+                        (_, fileIndex) =>
+                          fileIndex !== index
                       )
-                    }
-                    aria-label={`Remove ${file.name}`}
-                  >
-                    <X className="size-4 text-red-500 hover:text-red-700" />
-                  </button>
-                </div>
-              )
-            )}
+                    )
+                  }
+                  aria-label={`Remove ${file.name}`}
+                >
+                  <X className="size-4 text-red-500 hover:text-red-700" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -1436,41 +1247,38 @@ if (
 
       {/* Submit */}
 
-<Button
-  type="submit"
-  size="lg"
-  disabled={
-    submitting ||
-    loadingReview
-  }
-  className="
-    h-11
-    w-full sm:w-auto
-    rounded-lg
-    border
-    border-[#2875f5]
-    bg-[#2875f5]
-    px-7
-    text-sm
-    font-bold
-    text-white
-    shadow-[0_6px_16px_rgba(40,117,245,0.22)]
-    transition-all
-    duration-200
-    hover:bg-[#155dcc]
-    hover:shadow-[0_8px_20px_rgba(40,117,245,0.28)]
-    disabled:cursor-not-allowed
-    disabled:opacity-60
-  "
->
-  {submitting
-    ? isEditMode
-      ? "Updating..."
-      : "Posting..."
-    : isEditMode
-    ? "Update Review"
-    : "Post Review"}
-</Button>
+      <Button
+        type="submit"
+        size="lg"
+        disabled={submitting || loadingReview}
+        className="
+          h-11
+          w-full sm:w-auto
+          rounded-lg
+          border
+          border-[#2875f5]
+          bg-[#2875f5]
+          px-7
+          text-sm
+          font-bold
+          text-white
+          shadow-[0_6px_16px_rgba(40,117,245,0.22)]
+          transition-all
+          duration-200
+          hover:bg-[#155dcc]
+          hover:shadow-[0_8px_20px_rgba(40,117,245,0.28)]
+          disabled:cursor-not-allowed
+          disabled:opacity-60
+        "
+      >
+        {submitting
+          ? isEditMode
+            ? "Updating..."
+            : "Posting..."
+          : isEditMode
+            ? "Update Review"
+            : "Post Review"}
+      </Button>
     </form>
   );
 }
