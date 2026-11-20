@@ -85,6 +85,11 @@ function ReviewForm() {
 - =====================================================
    */
 
+  const [subject, setSubject] = useState("");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const loadedReviewIdRef = useRef<string | null>(null);
+
   const [rating, setRating] = useState(0);
 
   const [attachments, setAttachments] =
@@ -116,12 +121,21 @@ function ReviewForm() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadReview() {
-      if (!editReviewId) {
-        setLoadingReview(false);
-        return;
-      }
+    if (!editReviewId) {
+      setLoadingReview(false);
+      return;
+    }
 
+    // Prevent re-fetching if already loaded for this review
+    if (loadedReviewIdRef.current === editReviewId) {
+      return;
+    }
+
+    if (!user?.id) {
+      return;
+    }
+
+    async function loadReview() {
       if (!user) {
         setLoadingReview(false);
         return;
@@ -188,7 +202,11 @@ function ReviewForm() {
         }
 
         if (!cancelled) {
+          loadedReviewIdRef.current = editReviewId;
           setReview(data as ExistingReview);
+          setSubject(data.subject ?? "");
+          setTitle(data.title ?? "");
+          setContent(data.content ?? "");
           setSelectedCategory(data.category ?? null);
           setRating(data.rating ?? 0);
           setExistingAttachments(
@@ -214,7 +232,7 @@ function ReviewForm() {
     return () => {
       cancelled = true;
     };
-  }, [editReviewId, user, navigate]);
+  }, [editReviewId, user?.id, navigate]);
 
   /*
 - =====================================================
@@ -290,21 +308,27 @@ function ReviewForm() {
       const form = event.currentTarget;
       const formData = new FormData(form);
 
-      const subject = (
-        formData.get("subject") as string
-      )?.trim();
+      const trimmedSubject = (
+        subject ||
+        (formData.get("subject") as string) ||
+        ""
+      ).trim();
 
       const category = selectedCategory || "Other";
 
-      const titleValue = (
-        formData.get("title") as string
-      )?.trim();
+      const trimmedTitle = (
+        title ||
+        (formData.get("title") as string) ||
+        ""
+      ).trim();
 
-      const title = titleValue || null;
+      const finalTitle = trimmedTitle || null;
 
-      const content = (
-        formData.get("content") as string
-      )?.trim();
+      const trimmedContent = (
+        content ||
+        (formData.get("content") as string) ||
+        ""
+      ).trim();
 
       /*
 - =================================================
@@ -312,14 +336,14 @@ function ReviewForm() {
 - =================================================
        */
 
-      if (!subject) {
+      if (!trimmedSubject) {
         toast.error(
           "Please enter what you are reviewing."
         );
         return;
       }
 
-      if (!content) {
+      if (!trimmedContent) {
         toast.error("Please write your review.");
         return;
       }
@@ -348,11 +372,11 @@ function ReviewForm() {
         } = await supabase
           .from("reviews")
           .update({
-            subject,
+            subject: trimmedSubject,
             category,
             rating: rating || null,
-            title,
-            content,
+            title: finalTitle,
+            content: trimmedContent,
           })
           .eq("id", review.id)
           .eq("user_id", user.id)
@@ -557,11 +581,11 @@ function ReviewForm() {
         .from("reviews")
         .insert({
           user_id: user.id,
-          subject,
+          subject: trimmedSubject,
           category,
           rating: rating || null,
-          title,
-          content,
+          title: finalTitle,
+          content: trimmedContent,
         })
         .select()
         .single();
@@ -683,6 +707,9 @@ function ReviewForm() {
       );
 
       form.reset();
+      setSubject("");
+      setTitle("");
+      setContent("");
       setRating(0);
       setAttachments([]);
 
@@ -815,7 +842,8 @@ function ReviewForm() {
 
         <Input
           name="subject"
-          defaultValue={review?.subject ?? ""}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
           placeholder="Enter the product, service, place or anything you're reviewing"
           required
           className="
@@ -954,7 +982,8 @@ function ReviewForm() {
 
         <Input
           name="title"
-          defaultValue={review?.title ?? ""}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="Give your review a short title (optional)"
           className="
             h-10 sm:h-11
@@ -992,7 +1021,8 @@ function ReviewForm() {
         >
           <Textarea
             name="content"
-            defaultValue={review?.content ?? ""}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
             placeholder="Share your genuine experience..."
             className="
               min-h-36 sm:min-h-40
@@ -1022,9 +1052,11 @@ function ReviewForm() {
           >
             <button
               type="button"
-              onClick={() =>
-                fileInputRef.current?.click()
-              }
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
               className="
                 flex
                 cursor-pointer
